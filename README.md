@@ -7,7 +7,7 @@ Ampere GPUs (SM80) lack native FP8 support, making FP8 KV cache unusable. This p
 
 The patch also implements optional FP8-E4M3 emulation for V Cache for extended value range beyond INT8 +/-127.
 
-It was primarily tested with Gemma-4-31B (cyankiwi/gemma-4-31B-it-AWQ-4bit), while limited testing was also done with Qwen3.6-27B (Minachist/Qwen3.6-27B-Mixed-AutoRound), YMMV.
+It was primarily tested with Gemma-4-31B [cyankiwi/gemma-4-31B-it-AWQ-4bit](https://huggingface.co/cyankiwi/gemma-4-31B-it-AWQ-4bit), while limited testing was also done with Qwen3.6-27B [Minachist/Qwen3.6-27B-Mixed-AutoRound](https://huggingface.co/Minachist/Qwen3.6-27B-Mixed-AutoRound), YMMV.
 
 
 ## Motivation
