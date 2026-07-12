@@ -544,7 +544,7 @@ index fb0c92305..deda31220 100644
          TILE_SIZE=TILE_SIZE,
          num_warps=num_warps,
 diff --git a/vllm/v1/attention/ops/triton_unified_attention.py b/vllm/v1/attention/ops/triton_unified_attention.py
-index f39e44286..0fcf16a64 100644
+index f39e44286..cb46e0cc8 100644
 --- a/vllm/v1/attention/ops/triton_unified_attention.py
 +++ b/vllm/v1/attention/ops/triton_unified_attention.py
 @@ -10,6 +10,7 @@
@@ -644,7 +644,7 @@ index f39e44286..0fcf16a64 100644
  
          # Per-(token, head) scales for INT8 / FP8 per-token-head modes.
          if USE_PER_TOKEN_HEAD_SCALES:
-@@ -923,6 +972,33 @@ def unified_attention(
+@@ -923,6 +972,46 @@ def unified_attention(
          TILE_SIZE_PREFILL = min(TILE_SIZE_PREFILL, block_size)
          TILE_SIZE_DECODE = min(TILE_SIZE_DECODE, block_size)
  
@@ -655,18 +655,31 @@ index f39e44286..0fcf16a64 100644
 +        launch_num_stages = 1
 +        hp = triton.next_power_of_2(head_size)
 +        if hp > 256:
-+            TILE_SIZE_PREFILL = 16
-+            TILE_SIZE_DECODE = 32
-+            launch_num_warps = 32
-+            logger.info_once("512-Head Architecture Detected. Forcing Tiles=16, Stages=1, Warps=32")
-+        elif hp > 128:
 +            TILE_SIZE_PREFILL = 32
 +            TILE_SIZE_DECODE = 32
-+            if is_decode:
-+                launch_num_warps = 16
-+            else:
-+                launch_num_warps = 32
-+            logger.info_once("256-Head Architecture Detected. Forcing Tiles=32, Stages=1, Warps=%d", launch_num_warps)
++            launch_num_warps = 16
++            """
++            logger.info_once(
++                "512-Head INT8 detected. Tiles prefill/decode=%d/%d stages=%d warps=%d",
++                TILE_SIZE_PREFILL,
++                TILE_SIZE_DECODE,
++                launch_num_stages,
++                launch_num_warps,
++            )
++            """
++        elif hp > 128:
++            TILE_SIZE_PREFILL = 64
++            TILE_SIZE_DECODE = 32
++            launch_num_warps = 16
++            """
++            logger.info_once(
++                "256-Head INT8 detected. Tiles prefill/decode=%d/%d stages=%d warps=%d",
++                TILE_SIZE_PREFILL,
++                TILE_SIZE_DECODE,
++                launch_num_stages,
++                launch_num_warps,
++            )
++            """
 +        else:
 +            # Fallback for smaller models (e.g., head_size 128)
 +            TILE_SIZE_PREFILL = 64
@@ -678,7 +691,7 @@ index f39e44286..0fcf16a64 100644
      # Tensor descriptors for Q load / output store require every element
      # of ``block_shape`` to be a power of 2.  ``num_queries_per_kv`` is
      # not always pow2 (e.g. Qwen2-7B: 28 / 4 = 7), so gate the Q/O paths
-@@ -1080,7 +1156,9 @@ def unified_attention(
+@@ -1080,7 +1169,9 @@ def unified_attention(
          num_seqs=num_seqs,
          BLOCK_M=BLOCK_M,
          NUM_SEGMENTS_PER_SEQ=num_segments,
