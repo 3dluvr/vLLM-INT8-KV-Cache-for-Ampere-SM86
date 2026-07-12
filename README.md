@@ -1,5 +1,6 @@
 # INT8 KV Cache Support for Ampere (SM80) GPUs
 
+***UPDATE: fixed a prefill bug that caused very slow rates compared to the BF16 reference.***
 
 ## Summary
 
@@ -117,6 +118,70 @@ export VLLM_KV_SCALES_FILE=/path/to/your_model_name_scales.json \
 ```
 
 Make sure you remove the other calibration Env variables because they are only used during calibration, as well as the ```--calculate-kv-scales``` vLLM argument.
+
+## vLLM Benchmarks
+
+```bash
+vllm bench serve  --backend openai --base-url http://localhost:8081  --model gemma-4-31b --dataset-name random --random-input-len 65536 --random-output-len 256 --num-prompts 1 --tokenizer ~/models/cyankiwi_gemma-4-31B-it-AWQ-4bit --request-rate inf
+```
+
+### BF16 (reference)
+
+```
+============ Serving Benchmark Result ============
+Successful requests:                     1
+Failed requests:                         0
+Benchmark duration (s):                  111.70
+Total input tokens:                      65536
+Total generated tokens:                  256
+Request throughput (req/s):              0.01
+Output token throughput (tok/s):         2.29
+Peak output token throughput (tok/s):    37.00
+Peak concurrent requests:                1.00
+Total token throughput (tok/s):          588.99
+---------------Time to First Token----------------
+Mean TTFT (ms):                          104836.23
+Median TTFT (ms):                        104836.23
+P99 TTFT (ms):                           104836.23
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          26.92
+Median TPOT (ms):                        26.92
+P99 TPOT (ms):                           26.92
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           27.24
+Median ITL (ms):                         27.36
+P99 ITL (ms):                            28.10
+==================================================
+```
+
+### INT8 (FP8_V_EMUL off)
+
+```
+============ Serving Benchmark Result ============
+Successful requests:                     1
+Failed requests:                         0
+Benchmark duration (s):                  126.57
+Total input tokens:                      65536
+Total generated tokens:                  256
+Request throughput (req/s):              0.01
+Output token throughput (tok/s):         2.02
+Peak output token throughput (tok/s):    34.00
+Peak concurrent requests:                1.00
+Total token throughput (tok/s):          519.81
+---------------Time to First Token----------------
+Mean TTFT (ms):                          118970.93
+Median TTFT (ms):                        118970.93
+P99 TTFT (ms):                           118970.93
+-----Time per Output Token (excl. 1st token)------
+Mean TPOT (ms):                          29.80
+Median TPOT (ms):                        29.80
+P99 TPOT (ms):                           29.80
+---------------Inter-token Latency----------------
+Mean ITL (ms):                           29.80
+Median ITL (ms):                         29.98
+P99 ITL (ms):                            30.78
+==================================================
+```
 
 ## LICENSE
 
